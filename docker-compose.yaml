@@ -1,0 +1,23 @@
+services:
+  mongo:
+    image: mongo:7
+    container_name: notes-mongo
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: notesdb
+    volumes:
+      - mongo_data:/data/db
+
+  app:
+    build: .
+    container_name: notes-api
+    depends_on:
+      - mongo
+    ports:
+      - "8080:8080"
+    environment:
+      MONGODB_URI: mongodb://mongo:27017/notesdb
+
+volumes:
+  mongo_data:

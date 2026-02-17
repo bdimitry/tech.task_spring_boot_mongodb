@@ -1,0 +1,15 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: notes-api
+  data:
+    mongodb:
+      uri: ${MONGODB_URI:mongodb://localhost:27017/notesdb}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
