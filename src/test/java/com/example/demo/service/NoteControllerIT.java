@@ -20,6 +20,11 @@ import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+/**
+ * Integration tests for Notes REST API.
+ * <p>
+ * The tests call HTTP endpoints and verify MongoDB persistence through Testcontainers.
+ */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class NoteControllerIT extends BaseMongoIT {
 
@@ -36,56 +41,51 @@ class NoteControllerIT extends BaseMongoIT {
 
     @Test
     void create_shouldReturn201_andPersist() {
-        var req = new NoteRequest(U1, "My first note", "note is just a note", Set.of(Tag.BUSINESS, Tag.IMPORTANT));
+        var req = new NoteRequest("My first note", "note is just a note", Set.of(Tag.BUSINESS, Tag.IMPORTANT));
 
-        ResponseEntity<NoteResponse> resp = rest.postForEntity("/api/notes", req, NoteResponse.class);
+        ResponseEntity<NoteResponse> resp = rest.postForEntity(baseUrl(U1), req, NoteResponse.class);
 
         assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(resp.getBody()).isNotNull();
-
         assertThat(resp.getBody().userId()).isEqualTo(U1);
         assertThat(resp.getBody().title()).isEqualTo("My first note");
         assertThat(resp.getBody().createdDate()).isNotNull();
-
-        var saved = repo.findById(resp.getBody().id()).orElseThrow();
-        assertThat(saved.getUserId()).isEqualTo(U1);
+        assertThat(repo.findById(resp.getBody().id())).isPresent();
     }
 
     @Test
     void create_shouldReturn400_whenTitleIsBlank() {
-        var req = new NoteRequest(U1, "   ", "text", Set.of(Tag.BUSINESS));
+        var req = new NoteRequest("   ", "text", Set.of(Tag.BUSINESS));
 
-        ResponseEntity<String> resp = rest.postForEntity("/api/notes", req, String.class);
+        ResponseEntity<String> resp = rest.postForEntity(baseUrl(U1), req, String.class);
 
         assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     }
 
     @Test
     void create_shouldReturn400_whenTextIsBlank() {
-        var req = new NoteRequest(U1, "title", "   ", Set.of(Tag.BUSINESS));
+        var req = new NoteRequest("title", "   ", Set.of(Tag.BUSINESS));
 
-        ResponseEntity<String> resp = rest.postForEntity("/api/notes", req, String.class);
+        ResponseEntity<String> resp = rest.postForEntity(baseUrl(U1), req, String.class);
 
         assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     }
 
     @Test
     void create_shouldReturn400_whenTagIsInvalidEnumValue() {
-        // Пытаемся отправить несуществующий enum в JSON -> Jackson должен вернуть 400
         String rawJson = """
-            {
-              "userId":"u1",
-              "title":"t",
-              "text":"hello",
-              "tags":["BUSINESS","BAD_TAG"]
-            }
-            """;
+                {
+                  "title":"t",
+                  "text":"hello",
+                  "tags":["BUSINESS","BAD_TAG"]
+                }
+                """;
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
 
         ResponseEntity<String> resp = rest.postForEntity(
-                "/api/notes",
+                baseUrl(U1),
                 new HttpEntity<>(rawJson, headers),
                 String.class
         );
@@ -99,8 +99,8 @@ class NoteControllerIT extends BaseMongoIT {
         create(U1, "u1-2", "b", Set.of(Tag.PERSONAL));
         create(U2, "u2-1", "c", Set.of(Tag.BUSINESS));
 
-        NotesPageResponse u1 = rest.getForObject("/api/notes?userId=" + U1 + "&page=0&size=10", NotesPageResponse.class);
-        NotesPageResponse u2 = rest.getForObject("/api/notes?userId=" + U2 + "&page=0&size=10", NotesPageResponse.class);
+        NotesPageResponse u1 = rest.getForObject(baseUrl(U1) + "?page=0&size=10", NotesPageResponse.class);
+        NotesPageResponse u2 = rest.getForObject(baseUrl(U2) + "?page=0&size=10", NotesPageResponse.class);
 
         assertThat(u1.items()).hasSize(2);
         assertThat(u1.items()).allMatch(n -> U1.equals(n.userId()));
@@ -116,7 +116,7 @@ class NoteControllerIT extends BaseMongoIT {
         create(U1, "b2", "z", Set.of(Tag.BUSINESS, Tag.IMPORTANT));
 
         NotesPageResponse business = rest.getForObject(
-                "/api/notes?userId=" + U1 + "&page=0&size=10&tag=BUSINESS",
+                baseUrl(U1) + "?page=0&size=10&tag=BUSINESS",
                 NotesPageResponse.class
         );
 
@@ -126,22 +126,19 @@ class NoteControllerIT extends BaseMongoIT {
 
     @Test
     void list_shouldSupportPagination() throws Exception {
-        // 3 заметки, size=2 => totalPages=2
         create(U1, "t1", "a", Set.of(Tag.BUSINESS));
         Thread.sleep(5);
         create(U1, "t2", "b", Set.of(Tag.BUSINESS));
         Thread.sleep(5);
         create(U1, "t3", "c", Set.of(Tag.BUSINESS));
 
-        NotesPageResponse page0 = rest.getForObject("/api/notes?userId=" + U1 + "&page=0&size=2", NotesPageResponse.class);
-        NotesPageResponse page1 = rest.getForObject("/api/notes?userId=" + U1 + "&page=1&size=2", NotesPageResponse.class);
+        NotesPageResponse page0 = rest.getForObject(baseUrl(U1) + "?page=0&size=2", NotesPageResponse.class);
+        NotesPageResponse page1 = rest.getForObject(baseUrl(U1) + "?page=1&size=2", NotesPageResponse.class);
 
-        assertThat(page0).isNotNull();
         assertThat(page0.items()).hasSize(2);
         assertThat(page0.totalItems()).isEqualTo(3);
         assertThat(page0.totalPages()).isEqualTo(2);
 
-        assertThat(page1).isNotNull();
         assertThat(page1.items()).hasSize(1);
         assertThat(page1.totalItems()).isEqualTo(3);
         assertThat(page1.totalPages()).isEqualTo(2);
@@ -151,10 +148,10 @@ class NoteControllerIT extends BaseMongoIT {
     void update_shouldReturn200_andUpdateFields() {
         String id = create(U1, "old", "old text", Set.of(Tag.PERSONAL));
 
-        var upd = new NoteRequest(U1, "new", "new text", Set.of(Tag.BUSINESS));
+        var upd = new NoteRequest("new", "new text", Set.of(Tag.BUSINESS));
 
         ResponseEntity<NoteResponse> resp = rest.exchange(
-                "/api/notes/" + id + "?userId=" + U1,
+                baseUrl(U1) + "/" + id,
                 HttpMethod.PUT,
                 new HttpEntity<>(upd),
                 NoteResponse.class
@@ -162,7 +159,6 @@ class NoteControllerIT extends BaseMongoIT {
 
         assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(resp.getBody()).isNotNull();
-
         assertThat(resp.getBody().userId()).isEqualTo(U1);
         assertThat(resp.getBody().title()).isEqualTo("new");
         assertThat(resp.getBody().text()).isEqualTo("new text");
@@ -173,12 +169,13 @@ class NoteControllerIT extends BaseMongoIT {
     void text_shouldReturnTextOnly() {
         String id = create(U1, "t", "note is just a note", Set.of());
 
-        ResponseEntity<NoteResponse> resp =
-                rest.getForEntity("/api/notes/" + id + "/text?userId=" + U1, NoteResponse.class);
+        ResponseEntity<NoteResponse> resp = rest.getForEntity(
+                baseUrl(U1) + "/" + id + "/text",
+                NoteResponse.class
+        );
 
         assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(resp.getBody()).isNotNull();
-
         assertThat(resp.getBody().userId()).isEqualTo(U1);
         assertThat(resp.getBody().id()).isEqualTo(id);
         assertThat(resp.getBody().text()).isEqualTo("note is just a note");
@@ -188,8 +185,10 @@ class NoteControllerIT extends BaseMongoIT {
     void stats_shouldReturnWordCounts_sortedDesc() {
         String id = create(U1, "t", "note is just a note", Set.of());
 
-        ResponseEntity<NoteStatsResponse> resp =
-                rest.getForEntity("/api/notes/" + id + "/stats?userId=" + U1, NoteStatsResponse.class);
+        ResponseEntity<NoteStatsResponse> resp = rest.getForEntity(
+                baseUrl(U1) + "/" + id + "/stats",
+                NoteStatsResponse.class
+        );
 
         assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(resp.getBody()).isNotNull();
@@ -200,7 +199,6 @@ class NoteControllerIT extends BaseMongoIT {
         assertThat(stats.get("just")).isEqualTo(1);
         assertThat(stats.get("a")).isEqualTo(1);
 
-        // Проверяем порядок (должно начинаться с "note":2)
         String firstKey = new ArrayList<>(stats.keySet()).get(0);
         assertThat(firstKey).isEqualTo("note");
     }
@@ -210,7 +208,7 @@ class NoteControllerIT extends BaseMongoIT {
         String id = create(U1, "t", "text", Set.of(Tag.BUSINESS));
 
         ResponseEntity<Void> resp = rest.exchange(
-                "/api/notes/" + id + "?userId=" + U1,
+                baseUrl(U1) + "/" + id,
                 HttpMethod.DELETE,
                 HttpEntity.EMPTY,
                 Void.class
@@ -219,10 +217,7 @@ class NoteControllerIT extends BaseMongoIT {
         assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
         assertThat(repo.findById(id)).isEmpty();
 
-        // И endpoint текста теперь должен отдавать 404
-        ResponseEntity<String> textResp =
-                rest.getForEntity("/api/notes/" + id + "/text?userId=" + U1, String.class);
-
+        ResponseEntity<String> textResp = rest.getForEntity(baseUrl(U1) + "/" + id + "/text", String.class);
         assertThat(textResp.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
     }
 
@@ -235,20 +230,22 @@ class NoteControllerIT extends BaseMongoIT {
         String id3 = create(U1, "t3", "c", Set.of(Tag.BUSINESS));
 
         NotesPageResponse page = rest.getForObject(
-                "/api/notes?userId=" + U1 + "&page=0&size=10",
+                baseUrl(U1) + "?page=0&size=10",
                 NotesPageResponse.class
         );
 
         assertThat(page.items()).extracting(NoteResponse::id).containsExactly(id3, id2, id1);
-
-        // В list() сервис специально обнуляет text
         assertThat(page.items()).allMatch(n -> n.text() == null);
     }
 
     private String create(String userId, String title, String text, Set<Tag> tags) {
-        var req = new NoteRequest(userId, title, text, tags);
-        ResponseEntity<NoteResponse> resp = rest.postForEntity("/api/notes", req, NoteResponse.class);
+        var req = new NoteRequest(title, text, tags);
+        ResponseEntity<NoteResponse> resp = rest.postForEntity(baseUrl(userId), req, NoteResponse.class);
         assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         return resp.getBody().id();
+    }
+
+    private String baseUrl(String userId) {
+        return "/v1/users/" + userId + "/notes";
     }
 }

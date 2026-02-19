@@ -17,6 +17,11 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * Default implementation of {@link NoteService}.
+ * <p>
+ * Always query notes by (id + userId) to avoid exposing another user's data.
+ */
 @Service
 public class NoteServiceImpl implements NoteService {
 
@@ -29,9 +34,9 @@ public class NoteServiceImpl implements NoteService {
     }
 
     @Override
-    public NoteResponse create(NoteRequest req) {
+    public NoteResponse create(String userId, NoteRequest req) {
         Note note = new Note();
-        note.setUserId(req.userId());
+        note.setUserId(userId);
         note.setTitle(req.title());
         note.setText(req.text());
         note.setTags(req.tags() == null ? Set.of() : req.tags());
@@ -42,7 +47,7 @@ public class NoteServiceImpl implements NoteService {
     }
 
     @Override
-    public NoteResponse update(String id, String userId, NoteRequest req) {
+    public NoteResponse update(String userId, String id, NoteRequest req) {
         Note note = repo.findByIdAndUserId(id, userId)
                 .orElseThrow(() -> new NotFoundException("Note not found"));
 
@@ -55,7 +60,7 @@ public class NoteServiceImpl implements NoteService {
     }
 
     @Override
-    public void delete(String id, String userId) {
+    public void delete(String userId, String id) {
         if (!repo.existsByIdAndUserId(id, userId)) {
             throw new NotFoundException("Note not found");
         }
@@ -78,11 +83,10 @@ public class NoteServiceImpl implements NoteService {
     }
 
     @Override
-    public NoteResponse getText(String id, String userId) {
+    public NoteResponse getText(String userId, String id) {
         Note note = repo.findByIdAndUserId(id, userId)
                 .orElseThrow(() -> new NotFoundException("Note not found"));
 
-        // NoteResponse(id, title, userId, createdDate, text, tags)
         return new NoteResponse(
                 note.getId(),
                 null,
@@ -94,7 +98,7 @@ public class NoteServiceImpl implements NoteService {
     }
 
     @Override
-    public NoteStatsResponse getStats(String id, String userId) {
+    public NoteStatsResponse getStats(String userId, String id) {
         Note note = repo.findByIdAndUserId(id, userId)
                 .orElseThrow(() -> new NotFoundException("Note not found"));
 
@@ -103,7 +107,6 @@ public class NoteServiceImpl implements NoteService {
     }
 
     private NoteResponse toFullResponse(Note n) {
-        // NoteResponse(id, title, userId, createdDate, text, tags)
         return new NoteResponse(
                 n.getId(),
                 n.getTitle(),
@@ -115,7 +118,6 @@ public class NoteServiceImpl implements NoteService {
     }
 
     private NoteResponse toListItemResponse(Note n) {
-        // list должен быть без text
         return new NoteResponse(
                 n.getId(),
                 n.getTitle(),

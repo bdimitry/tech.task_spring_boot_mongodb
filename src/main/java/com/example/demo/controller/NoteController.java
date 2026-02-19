@@ -12,8 +12,14 @@ import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
 
+/**
+ * REST controller for notes.
+ * <p>
+ * Notes are scoped to a user and are addressed as:
+ * /v1/users/{userId}/notes.
+ */
 @RestController
-@RequestMapping("/api/notes")
+@RequestMapping("/v1/users/{userId}/notes")
 public class NoteController {
 
     private final NoteService service;
@@ -23,14 +29,19 @@ public class NoteController {
     }
 
     @PostMapping
-    public ResponseEntity<NoteResponse> create(@Valid @RequestBody NoteRequest req) {
-        NoteResponse created = service.create(req);
-        return ResponseEntity.created(URI.create("/api/notes/" + created.id())).body(created);
+    public ResponseEntity<NoteResponse> create(
+            @PathVariable("userId") String userId,
+            @Valid @RequestBody NoteRequest req
+    ) {
+        NoteResponse created = service.create(userId, req);
+        return ResponseEntity
+                .created(URI.create("/v1/users/" + userId + "/notes/" + created.id()))
+                .body(created);
     }
 
     @GetMapping
     public ResponseEntity<NotesPageResponse> list(
-            @RequestParam String userId,
+            @PathVariable("userId") String userId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) Tag tag
@@ -40,35 +51,35 @@ public class NoteController {
 
     @GetMapping("/{id}/text")
     public ResponseEntity<NoteResponse> text(
-            @PathVariable String id,
-            @RequestParam String userId
+            @PathVariable("userId") String userId,
+            @PathVariable("id") String id
     ) {
-        return ResponseEntity.ok(service.getText(id, userId));
+        return ResponseEntity.ok(service.getText(userId, id));
     }
 
     @GetMapping("/{id}/stats")
     public ResponseEntity<NoteStatsResponse> stats(
-            @PathVariable String id,
-            @RequestParam String userId
+            @PathVariable("userId") String userId,
+            @PathVariable("id") String id
     ) {
-        return ResponseEntity.ok(service.getStats(id, userId));
+        return ResponseEntity.ok(service.getStats(userId, id));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<NoteResponse> update(
-            @PathVariable String id,
-            @RequestParam String userId,
+            @PathVariable("userId") String userId,
+            @PathVariable("id") String id,
             @Valid @RequestBody NoteRequest req
     ) {
-        return ResponseEntity.ok(service.update(id, userId, req));
+        return ResponseEntity.ok(service.update(userId, id, req));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(
-            @PathVariable String id,
-            @RequestParam String userId
+            @PathVariable("userId") String userId,
+            @PathVariable("id") String id
     ) {
-        service.delete(id, userId);
+        service.delete(userId, id);
         return ResponseEntity.noContent().build();
     }
 }
