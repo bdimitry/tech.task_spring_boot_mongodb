@@ -54,3 +54,8 @@ docker run --name notes-mongo -p 27017:27017 -d mongo:7
 ```bash
 ./gradlew test
 ```
+# GitHub
+
+```bash
+[./gradlew test](https://github.com/bdimitry/tech.task_spring_boot_mongodb)
+```
