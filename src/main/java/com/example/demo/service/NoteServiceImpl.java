@@ -1,117 +1,128 @@
-package com.example.demo.service.impl;
+package com.example.demo.service;
 
-import com.example.demo.dto.*;
+import com.example.demo.dto.NoteRequest;
+import com.example.demo.dto.NoteResponse;
+import com.example.demo.dto.NoteStatsResponse;
+import com.example.demo.dto.NotesPageResponse;
 import com.example.demo.exception.NotFoundException;
 import com.example.demo.model.Note;
 import com.example.demo.model.Tag;
 import com.example.demo.repository.NoteRepository;
-import com.example.demo.service.NoteService;
 import com.example.demo.util.WordStatsCalculator;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
-import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 @Service
 public class NoteServiceImpl implements NoteService {
 
     private final NoteRepository repo;
-    private final WordStatsCalculator statsCalculator = new WordStatsCalculator();
+    private final WordStatsCalculator statsCalculator;
 
-    public NoteServiceImpl(NoteRepository repo) {
+    public NoteServiceImpl(NoteRepository repo, WordStatsCalculator statsCalculator) {
         this.repo = repo;
+        this.statsCalculator = statsCalculator;
     }
 
     @Override
     public NoteResponse create(NoteRequest req) {
         Note note = new Note();
+        note.setUserId(req.userId());
         note.setTitle(req.title());
         note.setText(req.text());
+        note.setTags(req.tags() == null ? Set.of() : req.tags());
         note.setCreatedDate(Instant.now());
-        note.setTags(normalizeTags(req.tags()));
 
         Note saved = repo.save(note);
         return toFullResponse(saved);
     }
 
     @Override
-    public NoteResponse update(String id, NoteRequest req) {
-        Note note = repo.findById(id).orElseThrow(() -> new NotFoundException("Note not found: " + id));
+    public NoteResponse update(String id, String userId, NoteRequest req) {
+        Note note = repo.findByIdAndUserId(id, userId)
+                .orElseThrow(() -> new NotFoundException("Note not found"));
+
         note.setTitle(req.title());
         note.setText(req.text());
-        note.setTags(normalizeTags(req.tags()));
+        note.setTags(req.tags() == null ? Set.of() : req.tags());
 
         Note saved = repo.save(note);
         return toFullResponse(saved);
     }
 
     @Override
-    public void delete(String id) {
-        if (!repo.existsById(id)) {
-            throw new NotFoundException("Note not found: " + id);
+    public void delete(String id, String userId) {
+        if (!repo.existsByIdAndUserId(id, userId)) {
+            throw new NotFoundException("Note not found");
         }
-        repo.deleteById(id);
+        repo.deleteByIdAndUserId(id, userId);
     }
 
     @Override
-    public NotesPageResponse list(int page, int size, Tag tag) {
+    public NotesPageResponse list(String userId, int page, int size, Tag tag) {
         var pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdDate"));
 
-        var resultPage = (tag == null)
-                ? repo.findAll(pageable)
-                : repo.findByTagsContaining(tag, pageable);
+        var p = (tag == null)
+                ? repo.findAllByUserId(userId, pageable)
+                : repo.findAllByUserIdAndTagsContaining(userId, tag, pageable);
 
-        var items = resultPage.getContent().stream()
+        var items = p.getContent().stream()
                 .map(this::toListItemResponse)
                 .toList();
 
-        return new NotesPageResponse(
-                items,
-                page,
-                size,
-                resultPage.getTotalElements(),
-                resultPage.getTotalPages()
-        );
+        return new NotesPageResponse(items, page, size, p.getTotalElements(), p.getTotalPages());
     }
 
     @Override
-    public NoteResponse getText(String id) {
-        Note note = repo.findById(id).orElseThrow(() -> new NotFoundException("Note not found: " + id));
-        return new NoteResponse(note.getId(), null, null, note.getText(), null);
-    }
+    public NoteResponse getText(String id, String userId) {
+        Note note = repo.findByIdAndUserId(id, userId)
+                .orElseThrow(() -> new NotFoundException("Note not found"));
 
-    @Override
-    public NoteStatsResponse getStats(String id) {
-        Note note = repo.findById(id).orElseThrow(() -> new NotFoundException("Note not found: " + id));
-        return new NoteStatsResponse(statsCalculator.countWords(note.getText()));
-    }
-
-    // -------- mapping helpers --------
-
-    private NoteResponse toFullResponse(Note note) {
+        // NoteResponse(id, title, userId, createdDate, text, tags)
         return new NoteResponse(
                 note.getId(),
-                note.getTitle(),
-                note.getCreatedDate(),
-                note.getText(),
-                note.getTags()
-        );
-    }
-
-    private NoteResponse toListItemResponse(Note note) {
-        return new NoteResponse(
-                note.getId(),
-                note.getTitle(),
-                note.getCreatedDate(),
                 null,
+                note.getUserId(),
+                null,
+                note.getText(),
                 null
         );
     }
 
-    private Set<Tag> normalizeTags(Set<Tag> tags) {
-        return tags == null ? new HashSet<>() : tags;
+    @Override
+    public NoteStatsResponse getStats(String id, String userId) {
+        Note note = repo.findByIdAndUserId(id, userId)
+                .orElseThrow(() -> new NotFoundException("Note not found"));
+
+        Map<String, Integer> stats = statsCalculator.countWords(note.getText());
+        return new NoteStatsResponse(stats);
+    }
+
+    private NoteResponse toFullResponse(Note n) {
+        // NoteResponse(id, title, userId, createdDate, text, tags)
+        return new NoteResponse(
+                n.getId(),
+                n.getTitle(),
+                n.getUserId(),
+                n.getCreatedDate(),
+                n.getText(),
+                n.getTags()
+        );
+    }
+
+    private NoteResponse toListItemResponse(Note n) {
+        // list должен быть без text
+        return new NoteResponse(
+                n.getId(),
+                n.getTitle(),
+                n.getUserId(),
+                n.getCreatedDate(),
+                null,
+                n.getTags()
+        );
     }
 }

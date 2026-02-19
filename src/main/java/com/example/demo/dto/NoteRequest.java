@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotBlank;
 import java.util.Set;
 
 public record NoteRequest(
+        @NotBlank String userId,
         @NotBlank String title,
         @NotBlank String text,
         Set<Tag> tags
