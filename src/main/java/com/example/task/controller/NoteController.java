@@ -1,11 +1,11 @@
-package com.example.demo.controller;
+package com.example.task.controller;
 
-import com.example.demo.dto.NoteRequest;
-import com.example.demo.dto.NoteResponse;
-import com.example.demo.dto.NoteStatsResponse;
-import com.example.demo.dto.NotesPageResponse;
-import com.example.demo.model.Tag;
-import com.example.demo.service.NoteService;
+import com.example.task.dto.NoteRequest;
+import com.example.task.dto.NoteResponse;
+import com.example.task.dto.NoteStatsResponse;
+import com.example.task.dto.NotesPageResponse;
+import com.example.task.model.Tag;
+import com.example.task.service.NoteService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

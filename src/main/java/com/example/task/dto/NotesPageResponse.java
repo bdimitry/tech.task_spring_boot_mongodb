@@ -1,4 +1,4 @@
-package com.example.demo.dto;
+package com.example.task.dto;
 
 import java.util.List;
 

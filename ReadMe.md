@@ -49,6 +49,12 @@ docker run --name notes-mongo -p 27017:27017 -d mongo:7
 ./gradlew bootRun
 ```
 
+### Swager after bootrun
+
+```bash
+http://localhost:8080/swagger-ui/index.html#/
+```
+
 # Tests
 
 ```bash

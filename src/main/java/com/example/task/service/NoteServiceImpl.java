@@ -1,14 +1,14 @@
-package com.example.demo.service;
+package com.example.task.service;
 
-import com.example.demo.dto.NoteRequest;
-import com.example.demo.dto.NoteResponse;
-import com.example.demo.dto.NoteStatsResponse;
-import com.example.demo.dto.NotesPageResponse;
-import com.example.demo.exception.NotFoundException;
-import com.example.demo.model.Note;
-import com.example.demo.model.Tag;
-import com.example.demo.repository.NoteRepository;
-import com.example.demo.util.WordStatsCalculator;
+import com.example.task.dto.NoteRequest;
+import com.example.task.dto.NoteResponse;
+import com.example.task.dto.NoteStatsResponse;
+import com.example.task.dto.NotesPageResponse;
+import com.example.task.exception.NotFoundException;
+import com.example.task.model.Note;
+import com.example.task.model.Tag;
+import com.example.task.repository.NoteRepository;
+import com.example.task.util.WordStatsCalculator;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;

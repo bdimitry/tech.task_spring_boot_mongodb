@@ -1,12 +1,12 @@
-package com.example.demo.service;
+package com.example.test.service;
 
-import com.example.demo.BaseMongoIT;
-import com.example.demo.dto.NoteRequest;
-import com.example.demo.dto.NoteResponse;
-import com.example.demo.dto.NoteStatsResponse;
-import com.example.demo.dto.NotesPageResponse;
-import com.example.demo.model.Tag;
-import com.example.demo.repository.NoteRepository;
+import com.example.test.BaseMongoIT;
+import com.example.task.dto.NoteRequest;
+import com.example.task.dto.NoteResponse;
+import com.example.task.dto.NoteStatsResponse;
+import com.example.task.dto.NotesPageResponse;
+import com.example.task.model.Tag;
+import com.example.task.repository.NoteRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

@@ -1,6 +1,6 @@
-package com.example.demo.dto;
+package com.example.task.dto;
 
-import com.example.demo.model.Tag;
+import com.example.task.model.Tag;
 import jakarta.validation.constraints.NotBlank;
 
 import java.util.Set;

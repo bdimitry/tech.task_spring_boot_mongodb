@@ -2,3 +2,8 @@ spring:
   data:
     mongodb:
       uri: ${MONGODB_URI:mongodb://localhost:27017/notesdb_test}
+springdoc:
+  swagger-ui:
+    enabled: false
+  api-docs:
+    enabled: false

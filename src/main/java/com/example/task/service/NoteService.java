@@ -1,7 +1,11 @@
-package com.example.demo.service;
+package com.example.task.service;
 
-import com.example.demo.dto.*;
-import com.example.demo.model.Tag;
+import com.example.task.dto.NoteRequest;
+import com.example.task.dto.NoteResponse;
+import com.example.task.dto.NoteStatsResponse;
+import com.example.task.dto.NotesPageResponse;
+import com.example.task.dto.*;
+import com.example.task.model.Tag;
 
 /**
  * Notes business API.

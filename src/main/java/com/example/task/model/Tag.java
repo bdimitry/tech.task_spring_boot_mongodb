@@ -1,4 +1,4 @@
-package com.example.demo.model;
+package com.example.task.model;
 
 public enum Tag {
     BUSINESS, PERSONAL, IMPORTANT

@@ -1,7 +1,7 @@
-package com.example.demo.repository;
+package com.example.task.repository;
 
-import com.example.demo.model.Note;
-import com.example.demo.model.Tag;
+import com.example.task.model.Note;
+import com.example.task.model.Tag;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.MongoRepository;
@@ -9,7 +9,7 @@ import org.springframework.data.mongodb.repository.MongoRepository;
 import java.util.Optional;
 
 /**
- * MongoDB repository for {@link com.example.demo.model.Note}.
+ * MongoDB repository for {@link Note}.
  * <p>
  * Prefer methods that include userId to keep all operations scoped to the note owner.
  */
